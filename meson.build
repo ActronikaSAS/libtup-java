@@ -1,35 +1,32 @@
 project('libtup-java', ['cpp', 'java'],
   version : '0.1',
+  meson_version : '>= 0.43.0',
   default_options : ['warning_level=2'])
 
-if (meson.get_compiler('cpp').get_id() == 'gcc'
-    or meson.get_compiler('cpp').get_id() == 'clang')
-  add_project_arguments([
-      # warnings flags
-      '-Wno-unused-parameter',
-      '-Wformat-nonliteral',
-      '-Wformat-security',
-      '-Winit-self',
-      '-Wswitch-default',
-      '-Wuninitialized',
-      '-Wshadow',
-      '-Wframe-larger-than=4096',
-      '-Wpointer-arith',
-      '-Wundef',
-      '-Wcast-qual',
-      '-Wno-type-limits',
-      ], language : 'cpp')
-endif
+compiler = meson.get_compiler('cpp')
 
-if (meson.get_compiler('cpp').get_id() == 'gcc')
-  add_project_arguments(['-Wmaybe-uninitialized'], language: 'cpp')
-endif
+warning_flags = [
+    '-Wno-unused-parameter',
+    '-Wformat-nonliteral',
+    '-Wformat-security',
+    '-Winit-self',
+    '-Wswitch-default',
+    '-Wuninitialized',
+    '-Wmaybe-uninitialized',
+    '-Wshadow',
+    '-Wframe-larger-than=4096',
+    '-Wpointer-arith',
+    '-Wundef',
+    '-Wcast-qual',
+    '-Wno-type-limits'
+    ]
+
+add_project_arguments(compiler.get_supported_arguments(warning_flags),
+    language: 'cpp')
 
 local_src = [ 'jni/tup-jni.cpp' ]
 
 local_cxxargs = []
-
-compiler = meson.get_compiler('cpp')
 
 # check for JNI
 found = compiler.has_header('jni.h')

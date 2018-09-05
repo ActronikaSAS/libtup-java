@@ -41,8 +41,8 @@ public final class Context {
         public void onNewMessage(Context ctx, Message msg);
     }
 
-    public Context(String devpath) {
-        m_ctx = create(devpath);
+    public Context() {
+        m_ctx = create();
         if (m_ctx == 0)
             throw new RuntimeException("failed to create tup context");
     }
@@ -55,6 +55,18 @@ public final class Context {
 
     public void setListener(Listener listener) {
         m_listener = listener;
+    }
+
+    public void open(String devpath) throws JTupException {
+        int ret;
+
+        ret = open(m_ctx, devpath);
+        if (ret != 0)
+            throw new JTupException(ret, "failed to open device");
+    }
+
+    public void close() {
+        close(m_ctx);
     }
 
     public void setConfig(int baudrate, int parity, boolean flow_control)
@@ -88,7 +100,7 @@ public final class Context {
 
         ret = waitAndProcess(m_ctx, timeout_ms);
         if (ret != 0) {
-            if (ret == -JTupException.CODE_ETIMEDOUT)
+            if (ret == -JTupException.CODE_TIMEDOUT)
                 throw new TimeoutException("timeout while waiting");
             else
                 throw new JTupException(-ret, "failed to wait and process");
@@ -102,8 +114,10 @@ public final class Context {
             m_listener.onNewMessage(this, msg);
     }
 
-    private native long create(String path);
+    private native long create();
     private native void destroy(long ctx);
+    private native int open(long ctx, String path);
+    private native void close(long ctx);
     private native int setConfig(long ctx, int baudrate, int parity,
             boolean flow_control);
     private native int send(long ctx, long msg);

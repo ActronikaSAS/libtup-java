@@ -23,54 +23,7 @@
 
 extern "C" {
 
-enum JTupExceptionErrorCode
-{
-    JTUP_EXCEPTION_ERROR_CODE_ENOENT = 1,
-    JTUP_EXCEPTION_ERROR_CODE_E2BIG = 2,
-    JTUP_EXCEPTION_ERROR_CODE_EBADF = 3,
-    JTUP_EXCEPTION_ERROR_CODE_EAGAIN = 4,
-    JTUP_EXCEPTION_ERROR_CODE_ENOMEM = 5,
-    JTUP_EXCEPTION_ERROR_CODE_EFAULT = 6,
-    JTUP_EXCEPTION_ERROR_CODE_EBUSY = 7,
-    JTUP_EXCEPTION_ERROR_CODE_EINVAL = 8,
-    JTUP_EXCEPTION_ERROR_CODE_ENOSYS = 9,
-    JTUP_EXCEPTION_ERROR_CODE_EBADMSG = 10,
-    JTUP_EXCEPTION_ERROR_CODE_ETIMEDOUT = 11,
-};
-
 static JavaVM *jvm;
-
-static int convert_error(int error)
-{
-    switch (error) {
-        case 0:
-            return 0;
-        case -ENOENT:
-            return -JTUP_EXCEPTION_ERROR_CODE_ENOENT;
-        case -E2BIG:
-            return -JTUP_EXCEPTION_ERROR_CODE_E2BIG;
-        case -EBADF:
-            return -JTUP_EXCEPTION_ERROR_CODE_EBADF;
-        case -EAGAIN:
-            return -JTUP_EXCEPTION_ERROR_CODE_EAGAIN;
-        case -ENOMEM:
-            return -JTUP_EXCEPTION_ERROR_CODE_ENOMEM;
-        case -EFAULT:
-            return -JTUP_EXCEPTION_ERROR_CODE_EFAULT;
-        case -EBUSY:
-            return -JTUP_EXCEPTION_ERROR_CODE_EBUSY;
-        case -EINVAL:
-            return -JTUP_EXCEPTION_ERROR_CODE_EINVAL;
-        case -ENOSYS:
-            return -JTUP_EXCEPTION_ERROR_CODE_ENOSYS;
-        case -EBADMSG:
-            return -JTUP_EXCEPTION_ERROR_CODE_EBADMSG;
-        case -ETIMEDOUT:
-            return -JTUP_EXCEPTION_ERROR_CODE_ETIMEDOUT;
-        default:
-            return -JTUP_EXCEPTION_ERROR_CODE_EFAULT;
-    }
-}
 
 static jobject new_integer(JNIEnv *env, int value)
 {
@@ -120,19 +73,18 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 }
 
 JNIEXPORT jlong JNICALL
-Java_com_actronika_JTup_Context_create(JNIEnv *env, jobject obj, jstring jpath)
+Java_com_actronika_JTup_Context_create(JNIEnv *env, jobject obj)
 {
     TupContext *ctx;
-    const char *path = env->GetStringUTFChars(jpath, NULL);
     TupCallbacks cbs = {
-            .new_message = on_new_message,
+            .new_message_cb = on_new_message,
+            .error_cb = NULL,
     };
     jobject ref;
 
     ref = env->NewGlobalRef(obj);
 
-    ctx = tup_context_new(path, &cbs, ref);
-    env->ReleaseStringUTFChars(jpath, path);
+    ctx = tup_context_new(&cbs, ref);
 
     if (ctx == NULL) {
         env->DeleteGlobalRef(ref);
@@ -147,49 +99,60 @@ Java_com_actronika_JTup_Context_destroy(JNIEnv *env, jobject obj, jlong jctx)
 {
     TupContext *ctx = (TupContext *) jctx;
 
-    env->DeleteGlobalRef((jobject) ctx->userdata);
+    env->DeleteGlobalRef(obj);
     tup_context_free(ctx);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_actronika_JTup_Context_open(JNIEnv *env, jobject obj, jlong jctx,
+        jstring jpath)
+{
+    TupContext *ctx = (TupContext *) jctx;
+    const char *path;
+    int ret;
+
+    path = env->GetStringUTFChars(jpath, NULL);
+    ret = tup_context_open(ctx, path);
+    env->ReleaseStringUTFChars(jpath, path);
+
+    return ret;
+}
+
+JNIEXPORT void JNICALL
+Java_com_actronika_JTup_Context_close(JNIEnv *env, jobject obj, jlong jctx)
+{
+    TupContext *ctx = (TupContext *) jctx;
+
+    tup_context_close(ctx);
 }
 
 JNIEXPORT jint JNICALL
 Java_com_actronika_JTup_Context_setConfig(JNIEnv *env, jobject obj,
         jlong jctx, jint baudrate, jint parity, jboolean flow_control)
 {
-    int ret;
-
-    ret = tup_context_set_config((TupContext *) jctx,
-            (SmpSerialFrameBaudrate) baudrate, (SmpSerialFrameParity) parity,
+    return tup_context_set_config((TupContext *) jctx,
+            (SmpSerialBaudrate) baudrate, (SmpSerialParity) parity,
             (flow_control == JNI_TRUE) ? 1 : 0);
-    return (ret == 0) ? 0 : convert_error(ret);
 }
 
 JNIEXPORT jint JNICALL
 Java_com_actronika_JTup_Context_send(JNIEnv *env, jobject obj, jlong jctx,
         jlong jmsg)
 {
-    int ret;
-
-    ret = tup_context_send((TupContext *) jctx, (TupMessage *) jmsg);
-    return (ret == 0) ? 0 : convert_error(ret);
+    return tup_context_send((TupContext *) jctx, (TupMessage *) jmsg);
 }
 
 JNIEXPORT jint JNICALL
 Java_com_actronika_JTup_Context_processFd(JNIEnv *env, jobject obj, jlong jctx)
 {
-    int ret;
-
-    ret = tup_context_process_fd((TupContext *) jctx);
-    return (ret == 0) ? 0 : convert_error(ret);
+    return tup_context_process_fd((TupContext *) jctx);
 }
 
 JNIEXPORT jint JNICALL
 Java_com_actronika_JTup_Context_waitAndProcess(JNIEnv *env, jobject obj,
         jlong jctx, jint timeout_ms)
 {
-    int ret;
-
-    ret = tup_context_wait_and_process((TupContext *) jctx, timeout_ms);
-    return (ret == 0) ? 0 : convert_error(ret);
+    return tup_context_wait_and_process((TupContext *) jctx, timeout_ms);
 }
 
 JNIEXPORT jlong JNICALL
@@ -224,7 +187,7 @@ Java_com_actronika_JTup_Message_parseAck(JNIEnv *env, jobject obj, jlong jmsg)
 
     ret = tup_message_parse_ack((TupMessage *) jmsg, &type);
     if (ret < 0)
-        return convert_error(ret);
+        return ret;
 
     jfieldID fid = env->GetFieldID(env->GetObjectClass(obj), "m_res_cmd", "I");
     env->SetIntField(obj, fid, type);
@@ -242,7 +205,7 @@ Java_com_actronika_JTup_Message_parseError(JNIEnv *env, jobject obj, jlong jmsg)
 
     ret = tup_message_parse_error((TupMessage *) jmsg, &type, &error);
     if (ret < 0)
-        return convert_error(ret);
+        return ret;
 
     cls = env->GetObjectClass(obj);
 
@@ -318,7 +281,7 @@ Java_com_actronika_JTup_Message_initGetParameters(JNIEnv *env, jobject obj,
     delete[] param_ids;
     env->ReleaseIntArrayElements(jparam_ids, data, JNI_ABORT);
 
-    return (ret == 0) ? 0 : convert_error(ret);
+    return ret;
 }
 
 /*
@@ -337,7 +300,7 @@ Java_com_actronika_JTup_Message_initSetParameters(JNIEnv *env, jobject obj,
     len = env->GetArrayLength(jparams);
     n_params = len / 2;
     if (n_params == 0)
-        return convert_error(-EINVAL);
+        return SMP_ERROR_INVALID_PARAM;
 
     params = env->GetIntArrayElements(jparams, NULL);
     args = new TupParameterArgs[n_params];
@@ -353,7 +316,7 @@ Java_com_actronika_JTup_Message_initSetParameters(JNIEnv *env, jobject obj,
     delete[] args;
     env->ReleaseIntArrayElements(jparams, params, JNI_ABORT);
 
-    return (ret == 0) ? 0 : convert_error(ret);
+    return ret;
 }
 
 JNIEXPORT jint JNICALL
@@ -378,7 +341,7 @@ Java_com_actronika_JTup_Message_initGetInputs(JNIEnv *env, jobject obj,
     delete[] input_ids;
     env->ReleaseIntArrayElements(jinput_ids, data, JNI_ABORT);
 
-    return (ret == 0) ? 0 : convert_error(ret);
+    return ret;
 }
 
 /*
@@ -397,7 +360,7 @@ Java_com_actronika_JTup_Message_initSetInputs(JNIEnv *env, jobject obj,
     len = env->GetArrayLength(jinputs);
     n_inputs = len / 2;
     if (n_inputs == 0)
-        return convert_error(-EINVAL);
+        return SMP_ERROR_INVALID_PARAM;
 
     inputs = env->GetIntArrayElements(jinputs, NULL);
     args = new TupInputValueArgs[n_inputs];
@@ -413,7 +376,7 @@ Java_com_actronika_JTup_Message_initSetInputs(JNIEnv *env, jobject obj,
     delete[] args;
     env->ReleaseIntArrayElements(jinputs, inputs, JNI_ABORT);
 
-    return (ret == 0) ? 0 : convert_error(ret);
+    return ret;
 }
 
 JNIEXPORT jint JNICALL
@@ -425,7 +388,7 @@ Java_com_actronika_JTup_Message_parseRespVersion(JNIEnv *env, jobject obj,
 
     ret = tup_message_parse_resp_version((TupMessage *) jmsg, &version);
     if (ret < 0)
-        return convert_error(ret);
+        return ret;
 
     jfieldID fid = env->GetFieldID(env->GetObjectClass(obj), "m_res_version",
             "Ljava/lang/String;");
@@ -442,7 +405,7 @@ Java_com_actronika_JTup_Message_parseRespBuildInfo(JNIEnv *env, jobject obj,
 
     ret = tup_message_parse_resp_buildinfo((TupMessage *) jmsg, &binfo);
     if (ret < 0)
-        return convert_error(ret);
+        return ret;
 
     jfieldID fid = env->GetFieldID(env->GetObjectClass(obj), "m_res_buildinfo",
             "Ljava/lang/String;");
@@ -460,9 +423,9 @@ Java_com_actronika_JTup_Message_parseRespParameters(JNIEnv *env, jobject obj,
     size_t n_args;
     jmethodID mid;
 
-    n_args = (smp_message_n_args((TupMessage *) jmsg) - 1) / 2;
+    n_args = (smp_message_n_args((SmpMessage *) jmsg) - 1) / 2;
     args = new TupParameterArgs[n_args];
-    ret = tup_message_parse_resp_parameter((TupMessage *) jmsg, &effect_id,
+    ret = tup_message_parse_resp_parameter((SmpMessage *) jmsg, &effect_id,
             args, n_args);
     if (ret < 0)
         goto done;
@@ -477,7 +440,7 @@ Java_com_actronika_JTup_Message_parseRespParameters(JNIEnv *env, jobject obj,
 done:
     delete[] args;
 
-    return (ret == 0) ? 0 : convert_error(ret);
+    return ret;
 }
 
 JNIEXPORT jint JNICALL
@@ -490,9 +453,9 @@ Java_com_actronika_JTup_Message_parseRespInputs(JNIEnv *env, jobject obj,
     size_t n_args;
     jmethodID mid;
 
-    n_args = (smp_message_n_args((TupMessage *) jmsg) - 1) / 2;
+    n_args = (smp_message_n_args((SmpMessage *) jmsg) - 1) / 2;
     args = new TupInputValueArgs[n_args];
-    ret = tup_message_parse_resp_input((TupMessage *) jmsg, &effect_id,
+    ret = tup_message_parse_resp_input((SmpMessage *) jmsg, &effect_id,
             args, n_args);
     if (ret < 0)
         goto done;
@@ -507,7 +470,7 @@ Java_com_actronika_JTup_Message_parseRespInputs(JNIEnv *env, jobject obj,
 done:
     delete[] args;
 
-    return (ret == 0) ? 0 : convert_error(ret);
+    return ret;
 }
 
 }

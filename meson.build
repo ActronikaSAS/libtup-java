@@ -66,7 +66,8 @@ if not found
   error('`jni.h` not found')
 endif
 
-libtup_dep = dependency('libtup', fallback: ['libtup', 'libtup_dep'])
+libtup_dep = dependency('libtup', fallback: ['libtup', 'libtup_dep'],
+    version: '>= 0.6.0')
 
 jnilib = shared_library('tup-jni', local_src,
     cpp_args: local_cxxargs,

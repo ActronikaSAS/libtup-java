@@ -100,7 +100,7 @@ public final class Context {
 
         ret = waitAndProcess(m_ctx, timeout_ms);
         if (ret != 0) {
-            if (ret == -JTupException.CODE_TIMEDOUT)
+            if (ret == JTupException.CODE_TIMEDOUT)
                 throw new TimeoutException("timeout while waiting");
             else
                 throw new JTupException(-ret, "failed to wait and process");

@@ -74,3 +74,4 @@ jnilib = shared_library('tup-jni', local_src,
     dependencies: [libtup_dep])
 
 subdir('java')
+subdir('examples')

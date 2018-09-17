@@ -75,7 +75,7 @@ public final class Context {
 
         ret = setConfig(m_ctx, baudrate, parity, flow_control);
         if (ret != 0)
-            throw new JTupException(-ret, "failed to send config");
+            throw new JTupException(ret, "failed to send config");
     }
 
     public void send(Message msg) throws JTupException {
@@ -83,7 +83,7 @@ public final class Context {
 
         ret = send(m_ctx, msg.opaquePtr());
         if (ret != 0)
-            throw new JTupException(-ret, "failed to send message");
+            throw new JTupException(ret, "failed to send message");
     }
 
     public void processFd() throws JTupException {
@@ -91,7 +91,7 @@ public final class Context {
 
         ret = processFd(m_ctx);
         if (ret != 0)
-            throw new JTupException(-ret, "failed to process fd");
+            throw new JTupException(ret, "failed to process fd");
     }
 
     public void waitAndProcess(int timeout_ms)
@@ -103,7 +103,7 @@ public final class Context {
             if (ret == JTupException.CODE_TIMEDOUT)
                 throw new TimeoutException("timeout while waiting");
             else
-                throw new JTupException(-ret, "failed to wait and process");
+                throw new JTupException(ret, "failed to wait and process");
         }
     }
 

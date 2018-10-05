@@ -473,4 +473,37 @@ done:
     return ret;
 }
 
+JNIEXPORT void JNICALL
+Java_com_actronika_JTup_Message_initBeginEffectUpload(JNIEnv *env, jobject obj,
+        jlong jmsg, jint effect_id, jlong n_parts)
+{
+    tup_message_init_begin_effect_upload((TupMessage *)jmsg, effect_id,
+            n_parts);
+}
+
+JNIEXPORT void JNICALL
+Java_com_actronika_JTup_Message_initUploadEffectPart(JNIEnv *env, jobject obj,
+        jlong jmsg, jlong part_no, jbyteArray jdata, jint jsize)
+{
+    size_t size;
+    int8_t *data;
+
+    size = env->GetArrayLength(jdata);
+    if ((size_t) jsize < size)
+        size = (size_t) jsize;
+
+    data = env->GetByteArrayElements(jdata, NULL);
+
+    tup_message_init_upload_effect_part((TupMessage *) jmsg, part_no,
+            (uint8_t *) data, size);
+
+    env->ReleaseByteArrayElements(jdata, data, JNI_ABORT);
+}
+
+JNIEXPORT void JNICALL
+Java_com_actronika_JTup_Message_initEndEffectUpload(JNIEnv *env, jobject obj,
+        jlong jmsg)
+{
+    tup_message_init_end_effect_upload((TupMessage *) jmsg);
+}
 }

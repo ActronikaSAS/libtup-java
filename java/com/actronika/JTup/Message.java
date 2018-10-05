@@ -39,6 +39,11 @@ public final class Message {
     public static final int TYPE_GET_BUILDINFO = 19;
     public static final int TYPE_GET_INPUT = 21;
     public static final int TYPE_SET_INPUT = 22;
+
+    public static final int TYPE_BEGIN_EFFECT_UPLOAD = 50;
+    public static final int TYPE_UPLOAD_EFFECT_PART = 51;
+    public static final int TYPE_END_EFFECT_UPLOAD = 52;
+
     public static final int TYPE_RESP_VERSION = 100;
     public static final int TYPE_RESP_PARAMETER = 101;
     public static final int TYPE_RESP_BUILDINFO = 103;
@@ -149,6 +154,21 @@ public final class Message {
         initSetParameters(m_msg, slot, iparams);
     }
 
+    public void initBeginEffectUpload(int effect_id, long n_parts) {
+        setType(TYPE_BEGIN_EFFECT_UPLOAD);
+        initBeginEffectUpload(m_msg, effect_id, n_parts);
+    }
+
+    public void initUploadEffectPart(long part_no, byte[] data, int size) {
+        setType(TYPE_UPLOAD_EFFECT_PART);
+        initUploadEffectPart(m_msg, part_no, data, size);
+    }
+
+    public void initEndEffectUpload() {
+        setType(TYPE_END_EFFECT_UPLOAD);
+        initEndEffectUpload(m_msg);
+    }
+
     public int getCmd() {
         if (m_type != TYPE_ACK && m_type != TYPE_ERROR)
             throw new IllegalStateException("not an ack or an error message");
@@ -243,6 +263,10 @@ public final class Message {
     private native void initSetParameters(long msg, int effect_id, int[] params);
     private native void initGetInputs(long msg, int effect_id, int[] inputs);
     private native void initSetInputs(long msg, int effect_id, int[] inputs);
+
+    private native void initBeginEffectUpload(long msg, int effect_id, long n_parts);
+    private native void initUploadEffectPart(long msg, long part_no, byte[] data, int size);
+    private native void initEndEffectUpload(long msg);
 
     private native int parseRespVersion(long msg);
     private native int parseRespBuildInfo(long msg);

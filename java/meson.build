@@ -4,4 +4,5 @@ local_jsrc = [
     'com/actronika/JTup/Message.java',
     ]
 
-jlib = jar('JTup', local_jsrc)
+jlib = jar('JTup', local_jsrc,
+    java_args: ['--release', '8'])

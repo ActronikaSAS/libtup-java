@@ -23,6 +23,8 @@
 
 extern "C" {
 
+static int8_t *message_craw_data = nullptr;
+
 static JavaVM *jvm;
 
 static jobject new_integer(JNIEnv *env, int value)
@@ -164,6 +166,11 @@ Java_com_actronika_JTup_Message_create(JNIEnv *env, jobject obj)
 JNIEXPORT void JNICALL
 Java_com_actronika_JTup_Message_destroy(JNIEnv *env, jobject obj, jlong jmsg)
 {
+    if (message_craw_data != nullptr) {
+        delete[] message_craw_data;
+        message_craw_data = nullptr;
+    }
+
     tup_message_free((TupMessage *) jmsg);
 }
 
@@ -493,11 +500,14 @@ Java_com_actronika_JTup_Message_initUploadEffectPart(JNIEnv *env, jobject obj,
         size = (size_t) jsize;
 
     data = env->GetByteArrayElements(jdata, NULL);
-
     tup_message_init_upload_effect_part((TupMessage *) jmsg, part_no,
             (uint8_t *) data, size);
 
-    env->ReleaseByteArrayElements(jdata, data, JNI_ABORT);
+    if (message_craw_data != nullptr)
+        delete[] message_craw_data;
+
+    message_craw_data = data;
+    env->ReleaseByteArrayElements(jdata, data, JNI_COMMIT);
 }
 
 JNIEXPORT void JNICALL
